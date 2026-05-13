@@ -26,7 +26,13 @@
     <div class="logo-divider"></div>
     <div class="logo-tagline">Videoplaner</div>
   </div>
-  <div class="header-meta" id="headerMeta">MAI 2026</div>
+  <div class="header-right">
+    <div id="syncStatus" class="sync-status disabled">
+      <span class="sync-status-dot"></span>
+      <span class="sync-status-label">Lokal</span>
+    </div>
+    <div class="header-meta" id="headerMeta">MAI 2026</div>
+  </div>
 </header>
 
 <main class="container">
@@ -210,6 +216,14 @@
     <div class="setup-panel" id="setup-team">
       <div id="installBannerWrap"></div>
 
+      <div class="settings-card" id="cloudSyncCard" style="padding: 14px 16px;">
+        <div class="settings-card-title">Cloud-Synchronisation</div>
+        <div class="settings-card-desc" id="cloudSyncStatus">
+          Status wird geladen...
+        </div>
+        <div id="cloudSyncActions"></div>
+      </div>
+
       <div class="settings-card" style="padding: 14px 16px;">
         <div class="settings-card-title" style="margin-bottom: 10px;">Videografen · Fix</div>
         <div id="staffMgmtFix"></div>
@@ -354,9 +368,44 @@
   </div>
 </div>
 
+<!-- Read-Only Banner für Nicht-Admins -->
+<div id="readonlyBanner" class="readonly-banner" style="display:none;">
+  <span>👀 Nur-Lesen-Modus</span>
+  <button class="banner-btn" id="bannerLogin">Login</button>
+</div>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="loginOverlay">
+  <div class="modal" style="max-width: 420px;">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Admin-Bereich</div>
+        <div class="modal-title">Anmelden</div>
+      </div>
+      <button class="modal-close" id="loginClose">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-Mail</label>
+      <input type="email" class="form-input" id="loginEmail" placeholder="admin@equipe.one" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Passwort</label>
+      <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="loginError" style="color: var(--danger); font-size: 12px; margin-bottom: 12px; min-height: 16px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="loginCancel">Abbrechen</button>
+      <button class="btn btn-primary" id="loginSubmit">Anmelden</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="firebase-config.js"></script>
 <script src="sample-data.js"></script>
+<script src="firebase-sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

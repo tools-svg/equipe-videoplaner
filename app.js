@@ -102,9 +102,12 @@ function saveEntries() {
   catch(e) { showToast('Speichern fehlgeschlagen'); console.error(e); }
 }
 
-function saveTeam() {
+async function saveTeam() {
   try { localStorage.setItem(TEAM_KEY, JSON.stringify(state.team)); }
   catch(e) { console.error(e); }
+  if (FIREBASE_ENABLED && isAdmin && firebaseDb) {
+    await fbSaveTeam(state.team);
+  }
 }
 
 // ============ DATE UTILS ============
@@ -161,7 +164,7 @@ function getEntry(dateKey, staff) {
   return state.entries[dateKey]?.[staff] || null;
 }
 
-function setEntry(dateKey, staff, entry) {
+async function setEntry(dateKey, staff, entry) {
   if (!state.entries[dateKey]) state.entries[dateKey] = {};
   const existing = state.entries[dateKey][staff];
 
@@ -171,8 +174,16 @@ function setEntry(dateKey, staff, entry) {
     entry.isNotfall = false;
   }
 
-  state.entries[dateKey][staff] = { ...entry, updated: Date.now() };
-  saveEntries();
+  const finalEntry = { ...entry, updated: Date.now() };
+  state.entries[dateKey][staff] = finalEntry;
+
+  // Cloud-Sync wenn verfügbar und Admin
+  if (FIREBASE_ENABLED && isAdmin && firebaseDb) {
+    await fbSetEntry(dateKey, staff, finalEntry);
+    // localStorage wird durch onSnapshot-Listener automatisch gecacht
+  } else {
+    saveEntries();
+  }
 
   if (state.notifEnabled && 'Notification' in window && Notification.permission === 'granted') {
     const action = existing ? 'aktualisiert' : 'erstellt';
@@ -187,14 +198,18 @@ function setEntry(dateKey, staff, entry) {
   }
 }
 
-function deleteEntry(dateKey, staff) {
+async function deleteEntry(dateKey, staff) {
   if (state.entries[dateKey]) {
     delete state.entries[dateKey][staff];
     if (Object.keys(state.entries[dateKey]).length === 0) {
       delete state.entries[dateKey];
     }
   }
-  saveEntries();
+  if (FIREBASE_ENABLED && isAdmin && firebaseDb) {
+    await fbDeleteEntry(dateKey, staff);
+  } else {
+    saveEntries();
+  }
 }
 
 function detectType(text) {
@@ -900,6 +915,10 @@ function renderCapacityInsights(peopleData, startDate) {
 
 // ============ MODAL ============
 function openModal(date, staff, role) {
+  if (!isAdmin) {
+    showToast('Nur-Lesen-Modus. Bitte als Admin einloggen.');
+    return;
+  }
   state.editingDate = date;
   state.editingStaff = staff;
   state.editingRole = role;
@@ -1554,27 +1573,148 @@ function bindEvents() {
   }, { passive: true });
 }
 
-// ============ INIT ============
-function init() {
-  loadState();
+// ============ LOGIN-MODAL ============
+function openLoginModal() {
+  const overlay = document.getElementById('loginOverlay');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').textContent = '';
+  overlay.classList.add('active');
+  setTimeout(() => document.getElementById('loginEmail').focus(), 200);
+}
 
-  if (Object.keys(state.entries).length === 0 && typeof SAMPLE_DATA !== 'undefined') {
-    state.entries = JSON.parse(JSON.stringify(SAMPLE_DATA));
-    state.team = { ...DEFAULT_TEAM };
-    saveEntries();
-    saveTeam();
+function closeLoginModal() {
+  document.getElementById('loginOverlay').classList.remove('active');
+}
+
+async function submitLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  if (!email || !password) {
+    errorEl.textContent = 'Bitte E-Mail und Passwort eingeben.';
+    return;
   }
+  const result = await fbSignIn(email, password);
+  if (result.ok) {
+    closeLoginModal();
+    showToast('Erfolgreich angemeldet');
+  } else {
+    errorEl.textContent = result.error;
+  }
+}
+
+// ============ INIT ============
+async function init() {
+  loadState();
 
   state.selectedDate = new Date();
   state.monthViewDate = new Date(state.selectedDate.getFullYear(), state.selectedDate.getMonth(), 1);
   state.weekViewDate = new Date();
 
   bindEvents();
+  bindLoginEvents();
+
+  // Firebase initialisieren (async)
+  if (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED) {
+    onAuthCallback = () => {
+      updateReadOnlyUI();
+      const activeView = document.querySelector('.tab-btn.active')?.dataset.view;
+      if (activeView) switchView(activeView);
+    };
+    onSyncCallback = () => {
+      const activeView = document.querySelector('.tab-btn.active')?.dataset.view;
+      if (activeView) switchView(activeView);
+    };
+    await initFirebase();
+  } else {
+    // Offline-Modus: Sample-Daten beim ersten Mal laden
+    if (Object.keys(state.entries).length === 0 && typeof SAMPLE_DATA !== 'undefined') {
+      state.entries = JSON.parse(JSON.stringify(SAMPLE_DATA));
+      state.team = { ...DEFAULT_TEAM };
+      saveEntries();
+      try { localStorage.setItem(TEAM_KEY, JSON.stringify(state.team)); } catch(e) {}
+    }
+    isAdmin = true;
+    updateReadOnlyUI();
+  }
+
   switchView('day');
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW failed', err));
   }
+}
+
+function bindLoginEvents() {
+  document.getElementById('loginClose').onclick = closeLoginModal;
+  document.getElementById('loginCancel').onclick = closeLoginModal;
+  document.getElementById('loginSubmit').onclick = submitLogin;
+  document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitLogin();
+  });
+  document.getElementById('loginEmail').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+  });
+  document.getElementById('bannerLogin').onclick = () => openLoginModal();
+  document.getElementById('loginOverlay').onclick = (e) => {
+    if (e.target.id === 'loginOverlay') closeLoginModal();
+  };
+}
+
+function updateReadOnlyUI() {
+  const banner = document.getElementById('readonlyBanner');
+  if (!banner) return;
+  if (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && !isAdmin) {
+    banner.style.display = 'flex';
+    document.body.classList.add('has-readonly-banner');
+    const fab = document.getElementById('fabAdd');
+    if (fab) fab.style.opacity = '0.3';
+  } else {
+    banner.style.display = 'none';
+    document.body.classList.remove('has-readonly-banner');
+    const fab = document.getElementById('fabAdd');
+    if (fab) fab.style.opacity = '1';
+  }
+  updateCloudSyncCard();
+}
+
+function updateCloudSyncCard() {
+  const status = document.getElementById('cloudSyncStatus');
+  const actions = document.getElementById('cloudSyncActions');
+  if (!status || !actions) return;
+
+  if (typeof FIREBASE_ENABLED === 'undefined' || !FIREBASE_ENABLED) {
+    status.innerHTML = 'Cloud-Sync ist nicht eingerichtet. Daten werden nur lokal auf diesem Gerät gespeichert.<br><br><span style="color:var(--g500);">Trage deine Firebase-Daten in <strong>firebase-config.js</strong> ein, um Team-Synchronisation zu aktivieren.</span>';
+    actions.innerHTML = '';
+    return;
+  }
+
+  if (currentUser && !currentUser.isAnonymous) {
+    status.innerHTML = `Eingeloggt als <strong>${escapeHtml(currentUser.email)}</strong>${isAdmin ? ' &middot; <span style="color:var(--teal)">Admin</span>' : ' &middot; <span style="color:var(--warn)">Nur Lesen</span>'}`;
+    actions.innerHTML = `<button class="pill" id="logoutBtn">Abmelden</button>`;
+    document.getElementById('logoutBtn').onclick = async () => {
+      await fbSignOut();
+      showToast('Abgemeldet');
+    };
+    if (isAdmin && typeof SAMPLE_DATA !== 'undefined' && Object.keys(state.entries).length === 0) {
+      actions.innerHTML += `<button class="pill" id="bulkUploadBtn" style="margin-left: 8px;">Historische Daten hochladen</button>`;
+      document.getElementById('bulkUploadBtn').onclick = bulkUploadHistorical;
+    }
+  } else {
+    status.innerHTML = 'Du bist im <strong>Nur-Lesen-Modus</strong>. Melde dich als Admin an, um Einträge zu bearbeiten.';
+    actions.innerHTML = `<button class="pill active" id="loginBtnSetup">Als Admin anmelden</button>`;
+    document.getElementById('loginBtnSetup').onclick = () => openLoginModal();
+  }
+}
+
+async function bulkUploadHistorical() {
+  if (!confirm('Lade 113 Tage historische Daten in die Cloud? Andere User sehen diese danach.')) return;
+  showToast('Lade hoch...');
+  const count = await fbBulkUploadEntries(SAMPLE_DATA);
+  showToast(`${count} Einträge hochgeladen`);
 }
 
 document.addEventListener('DOMContentLoaded', init);
