@@ -22,7 +22,7 @@
 //
 // FERTIG. App synct dann automatisch.
 
-const FIREBASE_CONFIG = {
+const firebaseConfig = {
   apiKey: "AIzaSyBlPfCyNOEdMd1Lm0r4fhdCtBKmlxuONQ0",
   authDomain: "equipe-videoplaner.firebaseapp.com",
   projectId: "equipe-videoplaner",
