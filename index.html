@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="equipe">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<title>equipe · Videoplaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-wrap">
+    <img src="logo.png" alt="equipe" class="logo-img">
+    <div class="logo-divider"></div>
+    <div class="logo-tagline">Videoplaner</div>
+  </div>
+  <div class="header-meta" id="headerMeta">MAI 2026</div>
+</header>
+
+<main class="container">
+
+  <!-- ============ VIEW: TAG ============ -->
+  <section id="view-day" class="view active">
+    <div class="date-strip" id="dateStrip"></div>
+
+    <div class="day-header">
+      <div>
+        <div class="day-title" id="dayTitle">Heute</div>
+        <div class="day-subtitle" id="daySubtitle">Mittwoch, 13. Mai 2026</div>
+      </div>
+      <button class="today-jump" id="todayJump">Heute</button>
+    </div>
+
+    <!-- Tages-Auslastungs-Indikator -->
+    <div class="day-capacity" id="dayCapacity"></div>
+
+    <div class="rule"></div>
+
+    <div class="staff-section" id="sectionFix">
+      <div class="staff-section-head">
+        <div class="staff-section-title">Videografen · Fix</div>
+        <div class="staff-section-count" id="countFix">0 / 0</div>
+      </div>
+      <div id="staffListFix"></div>
+    </div>
+
+    <div class="staff-section" id="sectionHead">
+      <div class="staff-section-head">
+        <div class="staff-section-title">Head of Content</div>
+      </div>
+      <div id="staffListHead"></div>
+    </div>
+
+    <div class="staff-section" id="sectionFreelance">
+      <div class="staff-section-head">
+        <div class="staff-section-title">Freelance</div>
+      </div>
+      <div id="staffListFreelance"></div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: WOCHE ============ -->
+  <section id="view-week" class="view">
+    <div class="eyebrow">Wochenübersicht</div>
+    <div class="headline" id="weekHeadline">KW 20</div>
+    <div class="headline-sub" id="weekSubtitle">11.–17. Mai 2026</div>
+
+    <div class="week-nav">
+      <button class="month-nav-btn" id="prevWeek" aria-label="Vorherige Woche">‹</button>
+      <button class="today-jump" id="weekToday">Diese Woche</button>
+      <button class="month-nav-btn" id="nextWeek" aria-label="Nächste Woche">›</button>
+    </div>
+
+    <!-- Wochen-Auslastungs-Karten -->
+    <div class="week-summary" id="weekSummary"></div>
+
+    <!-- Heatmap-Grid: Tage horizontal × Personen vertikal -->
+    <div class="eyebrow no-dot" style="margin-top: 28px;">Belegungsplan</div>
+    <div class="week-legend">
+      <div class="legend-item"><span class="legend-dot frei"></span>Frei</div>
+      <div class="legend-item"><span class="legend-dot ok"></span>Geplant</div>
+      <div class="legend-item"><span class="legend-dot warn"></span>Voll</div>
+      <div class="legend-item"><span class="legend-dot off"></span>Abwesend</div>
+    </div>
+    <div class="week-grid-wrap">
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: MONAT ============ -->
+  <section id="view-month" class="view">
+    <div class="eyebrow">Übersicht</div>
+    <div class="headline" id="monthHeadline">Mai 2026</div>
+    <div class="headline-sub">Tippe einen Tag an, um Details zu sehen.</div>
+
+    <div class="month-nav">
+      <button class="month-nav-btn" id="prevMonth" aria-label="Vorheriger Monat">‹</button>
+      <div class="month-nav-title" id="monthNavTitle">Mai 2026</div>
+      <button class="month-nav-btn" id="nextMonth" aria-label="Nächster Monat">›</button>
+    </div>
+
+    <div class="month-grid" id="monthGrid"></div>
+
+    <div class="rule"></div>
+
+    <div class="stat-grid" style="margin-top: 16px;">
+      <div class="stat-card accent">
+        <div class="stat-card-label">Monat · Einträge</div>
+        <div class="stat-card-value" id="monthStatEntries">0</div>
+        <div class="stat-card-sub" id="monthStatDays">an 0 Tagen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Drehs</div>
+        <div class="stat-card-value" id="monthStatDreh">0</div>
+        <div class="stat-card-sub">geplante Drehs</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: AUSLASTUNG ============ -->
+  <section id="view-capacity" class="view">
+    <div class="eyebrow">Prognose</div>
+    <div class="headline">Auslastung</div>
+    <div class="headline-sub">Wer ist wie verplant in den kommenden Tagen?</div>
+
+    <div class="filter-row" id="capacityRangePills"></div>
+
+    <!-- Team-Gesamt-Auslastung -->
+    <div class="capacity-summary">
+      <div class="capacity-summary-label">Team-Auslastung gesamt</div>
+      <div class="capacity-summary-value">
+        <span id="capacitySummaryPct">0%</span>
+        <span class="capacity-summary-detail" id="capacitySummaryDetail">0 / 0 Slots</span>
+      </div>
+      <div class="capacity-bar-track">
+        <div class="capacity-bar-fill" id="capacitySummaryBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="eyebrow no-dot" style="margin-top: 24px;">Pro Person</div>
+    <div id="capacityList"></div>
+
+    <div class="rule"></div>
+    <div class="eyebrow no-dot">Hinweise</div>
+    <div id="capacityInsights"></div>
+  </section>
+
+  <!-- ============ VIEW: SETUP ============ -->
+  <section id="view-settings" class="view">
+    <div class="eyebrow">Setup</div>
+    <div class="headline">Einstellungen</div>
+    <div class="headline-sub">Statistik, Team und Daten verwalten.</div>
+
+    <!-- Tabs innerhalb von Setup -->
+    <div class="filter-row" id="setupTabs">
+      <button class="pill active" data-setup="stats">Statistik</button>
+      <button class="pill" data-setup="team">Team</button>
+      <button class="pill" data-setup="data">Daten</button>
+    </div>
+
+    <!-- Setup: Statistik -->
+    <div class="setup-panel active" id="setup-stats">
+      <div class="filter-row" id="statsMonthPills"></div>
+
+      <div class="stat-grid">
+        <div class="stat-card accent">
+          <div class="stat-card-label">Total Einträge</div>
+          <div class="stat-card-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Drehs</div>
+          <div class="stat-card-value" id="statDreh">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Schnitt</div>
+          <div class="stat-card-value" id="statSchnitt">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Ferien</div>
+          <div class="stat-card-value" id="statFerien">0</div>
+        </div>
+      </div>
+
+      <div class="rule"></div>
+      <div class="eyebrow">Auslastung pro Person</div>
+      <div id="staffStats"></div>
+
+      <div class="rule"></div>
+      <div class="eyebrow">Top Projekte</div>
+      <div id="projectStats"></div>
+
+      <div class="rule"></div>
+      <div class="eyebrow">Notfall-Einsätze · Matus</div>
+      <div id="matusWarnings"></div>
+    </div>
+
+    <!-- Setup: Team -->
+    <div class="setup-panel" id="setup-team">
+      <div id="installBannerWrap"></div>
+
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title" style="margin-bottom: 10px;">Videografen · Fix</div>
+        <div id="staffMgmtFix"></div>
+        <button class="pill" id="addFixBtn" style="margin-top: 8px;">+ Videograf hinzufügen</button>
+      </div>
+
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title" style="margin-bottom: 10px;">Head of Content</div>
+        <div id="staffMgmtHead"></div>
+      </div>
+
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title" style="margin-bottom: 10px;">Freelance-Pool</div>
+        <div class="settings-card-desc" style="margin-bottom: 12px;">
+          Diese Personen erscheinen im Dropdown der Freelance-Spalte.
+        </div>
+        <div id="staffMgmtFreelance"></div>
+        <button class="pill" id="addFreelanceBtn" style="margin-top: 8px;">+ Freelancer hinzufügen</button>
+      </div>
+
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title" style="margin-bottom: 10px;">Ehemalige Mitarbeiter</div>
+        <div class="settings-card-desc" style="margin-bottom: 12px;">
+          Historische Einträge sichtbar, keine neuen Einträge möglich.
+        </div>
+        <div id="staffMgmtEx"></div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="settings-card">
+        <div class="settings-card-title">Push-Benachrichtigungen</div>
+        <div class="settings-card-desc">
+          Werde benachrichtigt, wenn neue Einträge erstellt oder bestehende geändert werden.
+        </div>
+        <div class="settings-info">
+          <strong>iOS-Hinweis:</strong> Funktioniert nur, wenn die App über "Zum Home-Bildschirm" installiert wurde. iOS 16.4 oder neuer erforderlich.
+        </div>
+        <div id="notifStatus" style="font-size: 11px; color: var(--g400); margin-bottom: 12px;"></div>
+        <button class="pill active" id="enableNotif">Aktivieren</button>
+      </div>
+    </div>
+
+    <!-- Setup: Daten -->
+    <div class="setup-panel" id="setup-data">
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title">Backup</div>
+        <div class="settings-card-desc">Daten exportieren oder aus einer JSON-Datei wiederherstellen.</div>
+        <button class="data-btn" id="exportBtn">Daten exportieren</button>
+        <button class="data-btn" id="importBtn">Daten importieren</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+
+      <div class="settings-card" style="padding: 14px 16px;">
+        <div class="settings-card-title">Historische Daten</div>
+        <div class="settings-card-desc">Lade die 113 Tage aus Jan–Mai 2026 erneut. Bestehende Daten werden überschrieben.</div>
+        <button class="data-btn" id="loadHistoryBtn">Historische Daten laden</button>
+      </div>
+
+      <div class="settings-card" style="padding: 14px 16px; border-color: rgba(192, 57, 43, 0.25);">
+        <div class="settings-card-title" style="color: var(--danger);">Gefahrenzone</div>
+        <div class="settings-card-desc">Alle Einträge werden permanent gelöscht.</div>
+        <button class="data-btn danger" id="clearBtn">Alle Daten löschen</button>
+      </div>
+
+      <div class="ghost-text" style="margin-top: 16px;">
+        © equipe One AG · Daten werden nur lokal auf deinem Gerät gespeichert.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<button class="fab" id="fabAdd" aria-label="Eintrag erfassen">+</button>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-view="day">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+    Tag
+  </button>
+  <button class="tab-btn" data-view="week">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5v14h16V5H4zm14 12H6v-9h12v9zM8 10h2v2H8zm0 4h2v2H8zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"/></svg>
+    Woche
+  </button>
+  <button class="tab-btn" data-view="month">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13zM7 10h5v5H7z"/></svg>
+    Monat
+  </button>
+  <button class="tab-btn" data-view="capacity">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17h2v-7H3v7zm4 0h2V7H7v10zm4 0h2v-4h-2v4zm4 0h2V9h-2v8zm4-7v7h2v-7h-2z"/></svg>
+    Auslastung
+  </button>
+  <button class="tab-btn" data-view="settings">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.488.488 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+    Setup
+  </button>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow" id="modalEyebrow">Eintrag erfassen</div>
+        <div class="modal-title" id="modalDateTitle">15. Mai 2026</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Person</label>
+      <select class="form-select" id="formStaff"></select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Typ</label>
+      <div class="type-selector">
+        <button class="type-btn" data-type="dreh">Dreh</button>
+        <button class="type-btn" data-type="schnitt">Schnitt</button>
+        <button class="type-btn" data-type="andere">Andere</button>
+        <button class="type-btn" data-type="ferien">Ferien</button>
+        <button class="type-btn" data-type="feiertag">Feiertag</button>
+        <button class="type-btn" data-type="kompensation">Komp.</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Beschreibung · Projekt</label>
+      <input type="text" class="form-input" id="formText" placeholder="z.B. Dreh Schweizer Fleisch">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notizen (optional)</label>
+      <textarea class="form-textarea" id="formNotes" placeholder="Zusätzliche Details..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="btnDelete" style="display:none;">Löschen</button>
+      <button class="btn btn-secondary" id="btnCancel">Abbrechen</button>
+      <button class="btn btn-primary" id="btnSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="sample-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
