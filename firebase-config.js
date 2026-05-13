@@ -34,7 +34,7 @@ const FIREBASE_CONFIG = {
 // Admin-UIDs - nur diese Nutzer dürfen bearbeiten
 // (User-UID findest du in Firebase Console → Authentication → Users)
 const ADMIN_UIDS = [
-  // "p62iVkFqP5M7p78qLI7AuAEfSJi1"
+  "p62iVkFqP5M7p78qLI7AuAEfSJi1"
 ];
 
 // Wenn FIREBASE_CONFIG.apiKey leer ist, läuft die App im Offline-Modus (nur localStorage)
